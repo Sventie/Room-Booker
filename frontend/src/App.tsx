@@ -30,8 +30,6 @@ export default function App() {
   }, [])
 
   const floorRooms = rooms.filter(r => r.floor === floor)
-  const wingRooms = floorRooms.filter(r => r.wing !== 'HUB')
-  const hubRooms = floorRooms.filter(r => r.wing === 'HUB')
 
   function handleRoomClick(room: Room) {
     setSelectedRoom(room)
@@ -77,38 +75,17 @@ export default function App() {
               ))}
             </div>
             <div className="legend">
-              <div className="legend-item"><div className="legend-dot" style={{ background: '#43a047' }} /> Schreibtischraum</div>
+              <div className="legend-item"><div className="legend-dot" style={{ background: '#2e7d32' }} /> Schreibtischraum</div>
               <div className="legend-item"><div className="legend-dot" style={{ background: '#7b1fa2' }} /> Besprechungsraum</div>
               <div className="legend-item"><div className="legend-dot" style={{ background: '#1565c0' }} /> Ausgewählt</div>
-              <div className="legend-item"><div className="legend-dot" style={{ background: '#dcedc8', border: '1px solid #aed581' }} /> Dachterrasse</div>
             </div>
             <div className="plan-container">
               {loading && <p style={{ color: '#888' }}>Räume werden geladen…</p>}
               {error && <p style={{ color: '#c62828' }}>Fehler: {error}</p>}
               {!loading && !error && (
-                <FloorPlan rooms={wingRooms} floor={floor} selectedRoom={selectedRoom} onRoomClick={handleRoomClick} />
+                <FloorPlan rooms={floorRooms} floor={floor} selectedRoom={selectedRoom} onRoomClick={handleRoomClick} />
               )}
             </div>
-            {hubRooms.length > 0 && (
-              <div className="hub-section">
-                <h3 className="hub-title">Zentralbereich</h3>
-                <div className="hub-grid">
-                  {hubRooms.map(room => {
-                    const isSelected = selectedRoom?.id === room.id
-                    const isMeeting = room.type === 'MEETING_ROOM'
-                    return (
-                      <button key={room.id}
-                        className={`hub-room${isSelected ? ' hub-room--selected' : ''} ${isMeeting ? 'hub-room--meeting' : 'hub-room--desk'}`}
-                        onClick={() => handleRoomClick(room)}>
-                        <span className="hub-room-number">{room.roomNumber}</span>
-                        {room.name && <span className="hub-room-name">{room.name}</span>}
-                        <span className="hub-room-type">{isMeeting ? 'Besprechung' : `${room.deskCount} Pl.`}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
           </div>
 
           <aside className="sidebar">
