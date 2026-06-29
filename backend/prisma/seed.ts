@@ -34,21 +34,20 @@ const wingRooms = [
   { roomNumber: '3.65', floor: 3, wing: 'C', deskCount: 3 },
   { roomNumber: '3.66', floor: 3, wing: 'C', deskCount: 3 },
   { roomNumber: '3.67', floor: 3, wing: 'C', deskCount: 6 },
-  // 4. OG – Flügel A
-  { roomNumber: '4.36', floor: 4, wing: 'A', deskCount: 6 },
-  { roomNumber: '4.37', floor: 4, wing: 'A', deskCount: 3 },
-  { roomNumber: '4.38', floor: 4, wing: 'A', deskCount: 4 },
-  { roomNumber: '4.39', floor: 4, wing: 'A', deskCount: 7 },
-  { roomNumber: '4.40', floor: 4, wing: 'A', deskCount: 5 },
-  { roomNumber: '4.41', floor: 4, wing: 'A', deskCount: 4 },
-  { roomNumber: '4.42', floor: 4, wing: 'A', deskCount: 4 },
-  { roomNumber: '4.43', floor: 4, wing: 'A', deskCount: 4 },
-  { roomNumber: '4.44', floor: 4, wing: 'A', deskCount: 5 },
+  // 4. OG – Flügel C (A + B sind Dachterrassen)
+  { roomNumber: '4.36', floor: 4, wing: 'C', deskCount: 6 },
+  { roomNumber: '4.37', floor: 4, wing: 'C', deskCount: 3 },
+  { roomNumber: '4.38', floor: 4, wing: 'C', deskCount: 4 },
+  { roomNumber: '4.39', floor: 4, wing: 'C', deskCount: 7 },
+  { roomNumber: '4.40', floor: 4, wing: 'C', deskCount: 5 },
+  { roomNumber: '4.41', floor: 4, wing: 'C', deskCount: 4 },
+  { roomNumber: '4.42', floor: 4, wing: 'C', deskCount: 4 },
+  { roomNumber: '4.43', floor: 4, wing: 'C', deskCount: 4 },
+  { roomNumber: '4.44', floor: 4, wing: 'C', deskCount: 5 },
 ]
 
 async function main() {
-  console.log('Seed: Räume und Schreibtische werden angelegt...')
-
+  console.log('Seed: Räume und Schreibtische werden angelegt…')
   for (const room of wingRooms) {
     const svgId = `room-${room.roomNumber.replace('.', '-')}`
     const created = await prisma.room.upsert({
@@ -61,25 +60,18 @@ async function main() {
         deskCount: room.deskCount,
         svgId,
         desks: {
-          create: Array.from({ length: room.deskCount }, (_, i) => ({
-            number: i + 1
-          }))
+          create: Array.from({ length: room.deskCount }, (_, i) => ({ number: i + 1 }))
         }
       }
     })
     console.log(`  ✓ Raum ${created.roomNumber} (${room.deskCount} Plätze)`)
   }
-
-  // Demo-Nutzer
   await prisma.user.upsert({
     where: { email: 'demo@example.com' },
     update: {},
     create: { name: 'Demo Nutzer', email: 'demo@example.com' }
   })
-
   console.log('Seed abgeschlossen.')
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect())
+main().catch(console.error).finally(() => prisma.$disconnect())
