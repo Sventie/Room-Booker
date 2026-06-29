@@ -5,63 +5,60 @@ import { z } from 'zod'
 const prisma = new PrismaClient()
 export const bookingsRouter = Router()
 
-const createSchema = z.object({
-  userId: z.string(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format: YYYY-MM-DD'),
-  deskId: z.string().optional(),
-  roomId: z.string().optional()
-}).refine(d => d.deskId || d.roomId, {
-  message: 'deskId oder roomId erforderlich'
-})
-
-bookingsRouter.get('/', async (req, res) => {
-  const { userId, date } = req.query
-  const where: Record<string, unknown> = {}
-
-  if (userId) where.userId = userId
-  if (date && typeof date === 'string') {
-    const start = new Date(date)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(date)
-    end.setHours(23, 59, 59, 999)
-    where.date = { gte: start, lte: end }
-  }
-
+bookingsRouter.get('/all', async (_req, res) => {
   const bookings = await prisma.booking.findMany({
-    where,
     include: {
-      desk: true,
-      room: true,
-      user: { select: { name: true, email: true } }
+      user: { select: { name: true } },
+      desk: { include: { room: { select: { roomNumber: true, name: true } } } },
+      room: { select: { roomNumber: true, name: true } }
     },
     orderBy: { date: 'asc' }
   })
   res.json(bookings)
 })
 
+bookingsRouter.get('/', async (req, res) => {
+  const { userId, date } = req.query
+  const where: Record<string, unknown> = {}
+  if (userId) where.userId = userId
+  if (date && typeof date === 'string') {
+    const start = new Date(date); start.setHours(0, 0, 0, 0)
+    const end = new Date(date); end.setHours(23, 59, 59, 999)
+    where.date = { gte: start, lte: end }
+  }
+  const bookings = await prisma.booking.findMany({
+    where,
+    include: {
+      desk: { include: { room: { select: { roomNumber: true, name: true } } } },
+      room: { select: { roomNumber: true, name: true } },
+      user: { select: { name: true } }
+    },
+    orderBy: { date: 'asc' }
+  })
+  res.json(bookings)
+})
+
+const createSchema = z.object({
+  userId: z.string(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format: YYYY-MM-DD'),
+  deskId: z.string().optional(),
+  roomId: z.string().optional()
+}).refine(d => d.deskId || d.roomId, { message: 'deskId oder roomId erforderlich' })
+
 bookingsRouter.post('/', async (req, res) => {
   const result = createSchema.safeParse(req.body)
-  if (!result.success) {
-    return res.status(400).json({ error: result.error.flatten() })
-  }
+  if (!result.success) return res.status(400).json({ error: result.error.flatten() })
 
   const { userId, date, deskId, roomId } = result.data
-  const bookingDate = new Date(date)
-  bookingDate.setHours(12, 0, 0, 0)
+  const bookingDate = new Date(date); bookingDate.setHours(12, 0, 0, 0)
 
   try {
     if (roomId) {
       const existing = await prisma.booking.findFirst({
-        where: {
-          roomId,
-          date: { gte: new Date(date + 'T00:00:00'), lte: new Date(date + 'T23:59:59') }
-        }
+        where: { roomId, date: { gte: new Date(date + 'T00:00:00'), lte: new Date(date + 'T23:59:59') } }
       })
-      if (existing) {
-        return res.status(409).json({ error: 'Besprechungsraum ist an diesem Tag bereits gebucht' })
-      }
+      if (existing) return res.status(409).json({ error: 'Besprechungsraum ist an diesem Tag bereits gebucht' })
     }
-
     const booking = await prisma.booking.create({
       data: { userId, date: bookingDate, deskId, roomId }
     })
