@@ -1,0 +1,54 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Room {
+  id         String    @id @default(cuid())
+  roomNumber String    @unique
+  name       String?
+  floor      Int
+  wing       String
+  type       String    @default("DESK_ROOM") // DESK_ROOM | MEETING_ROOM
+  deskCount  Int       @default(4)
+  svgId      String    @unique
+  desks      Desk[]
+  bookings   Booking[]
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+}
+
+model Desk {
+  id       String    @id @default(cuid())
+  number   Int
+  label    String?
+  room     Room      @relation(fields: [roomId], references: [id])
+  roomId   String
+  bookings Booking[]
+  active   Boolean   @default(true)
+}
+
+model Booking {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  date      DateTime
+  desk      Desk?    @relation(fields: [deskId], references: [id])
+  deskId    String?
+  room      Room?    @relation(fields: [roomId], references: [id])
+  roomId    String?
+  createdAt DateTime @default(now())
+
+  @@unique([deskId, date])
+}
+
+model User {
+  id       String    @id @default(cuid())
+  name     String
+  email    String    @unique
+  bookings Booking[]
+}
