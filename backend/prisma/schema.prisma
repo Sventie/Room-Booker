@@ -13,7 +13,7 @@ model Room {
   name       String?
   floor      Int
   wing       String
-  type       String    @default("DESK_ROOM") // DESK_ROOM | MEETING_ROOM
+  type       String    @default("DESK_ROOM")
   deskCount  Int       @default(4)
   svgId      String    @unique
   desks      Desk[]
@@ -48,7 +48,6 @@ model Booking {
 
 model User {
   id       String    @id @default(cuid())
-  name     String
-  email    String    @unique
+  name     String    @unique
   bookings Booking[]
 }

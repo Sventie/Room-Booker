@@ -4,7 +4,7 @@ import FloorPlan from './components/FloorPlan'
 import BookingModal from './components/BookingModal'
 import UserSetup from './components/UserSetup'
 
-interface CurrentUser { id: string; name: string; email: string }
+interface CurrentUser { id: string; name: string }
 
 export default function App() {
   const [rooms, setRooms] = useState<Room[]>([])
@@ -32,10 +32,6 @@ export default function App() {
   function handleRoomClick(room: Room) {
     setSelectedRoom(room)
     if (currentUser) setBookingRoom(room)
-  }
-
-  function handleUserSetup(user: CurrentUser) {
-    setCurrentUser(user)
   }
 
   function handleLogout() {
@@ -107,7 +103,7 @@ export default function App() {
 
         <aside className="sidebar">
           {!currentUser ? (
-            <UserSetup onSetup={handleUserSetup} />
+            <UserSetup onSetup={setCurrentUser} />
           ) : selectedRoom ? (
             <div className="room-card">
               <h2>Raum {selectedRoom.roomNumber}</h2>
