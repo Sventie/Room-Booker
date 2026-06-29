@@ -46,8 +46,20 @@ const wingRooms = [
   { roomNumber: '4.44', floor: 4, wing: 'C', deskCount: 5 },
 ]
 
+const hubRooms = [
+  // 4. OG – Zentralbereich (Hauptgebäude)
+  { roomNumber: '4.12', name: 'Forum',     floor: 4, wing: 'HUB', type: 'MEETING_ROOM', deskCount: 0, area: 65.37 },
+  { roomNumber: '4.16', name: null,        floor: 4, wing: 'HUB', type: 'DESK_ROOM',    deskCount: 2, area: 10.88 },
+  { roomNumber: '4.17', name: null,        floor: 4, wing: 'HUB', type: 'DESK_ROOM',    deskCount: 8, area: 45.59 },
+  { roomNumber: '4.18', name: null,        floor: 4, wing: 'HUB', type: 'DESK_ROOM',    deskCount: 5, area: 30.09 },
+  { roomNumber: '4.20', name: 'Bellevue',  floor: 4, wing: 'HUB', type: 'MEETING_ROOM', deskCount: 0, area: 28.32 },
+  { roomNumber: '4.22', name: 'Seegarten', floor: 4, wing: 'HUB', type: 'MEETING_ROOM', deskCount: 0, area: 20.61 },
+  { roomNumber: '4.23', name: null,        floor: 4, wing: 'HUB', type: 'DESK_ROOM',    deskCount: 8, area: 43.54 },
+]
+
 async function main() {
   console.log('Seed: Räume und Schreibtische werden angelegt…')
+
   for (const room of wingRooms) {
     const svgId = `room-${room.roomNumber.replace('.', '-')}`
     const created = await prisma.room.upsert({
@@ -64,13 +76,37 @@ async function main() {
         }
       }
     })
-    console.log(`  ✓ Raum ${created.roomNumber} (${room.deskCount} Plätze)`)
+    console.log(`  ✓ Flügel ${room.wing} Raum ${created.roomNumber} (${room.deskCount} Plätze)`)
   }
+
+  for (const room of hubRooms) {
+    const svgId = `room-${room.roomNumber.replace('.', '-')}`
+    const created = await prisma.room.upsert({
+      where: { roomNumber: room.roomNumber },
+      update: {},
+      create: {
+        roomNumber: room.roomNumber,
+        name: room.name,
+        floor: room.floor,
+        wing: room.wing,
+        type: room.type,
+        deskCount: room.deskCount,
+        svgId,
+        desks: room.type === 'DESK_ROOM'
+          ? { create: Array.from({ length: room.deskCount }, (_, i) => ({ number: i + 1 })) }
+          : undefined
+      }
+    })
+    const label = room.name ? `${room.name} (${room.roomNumber})` : `Raum ${room.roomNumber}`
+    console.log(`  ✓ Zentralbereich ${label} – ${room.type}`)
+  }
+
   await prisma.user.upsert({
     where: { email: 'demo@example.com' },
     update: {},
     create: { name: 'Demo Nutzer', email: 'demo@example.com' }
   })
+
   console.log('Seed abgeschlossen.')
 }
 
