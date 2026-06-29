@@ -1,13 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Room } from './types'
 import FloorPlan from './components/FloorPlan'
+import BookingModal from './components/BookingModal'
+import UserSetup from './components/UserSetup'
+
+interface CurrentUser { id: string; name: string; email: string }
 
 export default function App() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [floor, setFloor] = useState(3)
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
+  const [bookingRoom, setBookingRoom] = useState<Room | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => {
+    const s = localStorage.getItem('room-booker-user')
+    return s ? JSON.parse(s) : null
+  })
 
   useEffect(() => {
     fetch('/api/rooms')
@@ -20,10 +29,32 @@ export default function App() {
   const wingRooms = floorRooms.filter(r => r.wing !== 'HUB')
   const hubRooms = floorRooms.filter(r => r.wing === 'HUB')
 
+  function handleRoomClick(room: Room) {
+    setSelectedRoom(room)
+    if (currentUser) setBookingRoom(room)
+  }
+
+  function handleUserSetup(user: CurrentUser) {
+    setCurrentUser(user)
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('room-booker-user')
+    setCurrentUser(null)
+    setSelectedRoom(null)
+    setBookingRoom(null)
+  }
+
   return (
     <div className="app">
       <header className="header">
         <h1>Room Booker · KiWi Tower Kiel</h1>
+        {currentUser && (
+          <div className="header-user">
+            <span>{currentUser.name}</span>
+            <button className="logout-btn" onClick={handleLogout}>Abmelden</button>
+          </div>
+        )}
       </header>
 
       <div className="main">
@@ -48,12 +79,7 @@ export default function App() {
             {loading && <p style={{ color: '#888' }}>Räume werden geladen…</p>}
             {error && <p style={{ color: '#c62828' }}>Fehler: {error}</p>}
             {!loading && !error && (
-              <FloorPlan
-                rooms={wingRooms}
-                floor={floor}
-                selectedRoom={selectedRoom}
-                onRoomClick={setSelectedRoom}
-              />
+              <FloorPlan rooms={wingRooms} floor={floor} selectedRoom={selectedRoom} onRoomClick={handleRoomClick} />
             )}
           </div>
 
@@ -65,11 +91,9 @@ export default function App() {
                   const isSelected = selectedRoom?.id === room.id
                   const isMeeting = room.type === 'MEETING_ROOM'
                   return (
-                    <button
-                      key={room.id}
+                    <button key={room.id}
                       className={`hub-room${isSelected ? ' hub-room--selected' : ''} ${isMeeting ? 'hub-room--meeting' : 'hub-room--desk'}`}
-                      onClick={() => setSelectedRoom(room)}
-                    >
+                      onClick={() => handleRoomClick(room)}>
                       <span className="hub-room-number">{room.roomNumber}</span>
                       {room.name && <span className="hub-room-name">{room.name}</span>}
                       <span className="hub-room-type">{isMeeting ? 'Besprechung' : `${room.deskCount} Pl.`}</span>
@@ -82,7 +106,9 @@ export default function App() {
         </div>
 
         <aside className="sidebar">
-          {selectedRoom ? (
+          {!currentUser ? (
+            <UserSetup onSetup={handleUserSetup} />
+          ) : selectedRoom ? (
             <div className="room-card">
               <h2>Raum {selectedRoom.roomNumber}</h2>
               {selectedRoom.name && (
@@ -99,13 +125,25 @@ export default function App() {
               {selectedRoom.type === 'DESK_ROOM' && (
                 <div className="detail-row"><span>Buchbare Plätze</span><span>{selectedRoom.deskCount}</span></div>
               )}
-              <p className="hint">Buchungs-Dialog folgt in Issue #6.</p>
+              <button className="btn-open-booking" onClick={() => setBookingRoom(selectedRoom)}>
+                Platz buchen
+              </button>
             </div>
           ) : (
-            <p className="empty-state">Raum im Grundriss oder Zentralbereich anklicken</p>
+            <p className="empty-state">Raum anklicken für Details</p>
           )}
         </aside>
       </div>
+
+      {bookingRoom && currentUser && (
+        <BookingModal
+          room={bookingRoom}
+          userId={currentUser.id}
+          userName={currentUser.name}
+          onClose={() => setBookingRoom(null)}
+          onBooked={() => setBookingRoom(null)}
+        />
+      )}
     </div>
   )
 }
